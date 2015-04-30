@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+	"strings"
+	"text/template"
 
 	flags "github.com/jessevdk/go-flags"
 )
 
 var opts struct {
 	Args struct {
-		Dest string
+		TemplateFilename string
 	} `positional-args:"yes" required:"yes"`
 }
 
@@ -23,21 +24,17 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	dest := opts.Args.Dest
-	defer fmt.Print(dest)
+	TemplateFilename := opts.Args.TemplateFilename
 
-	src := dest + ".env"
-
-	bytes, err := ioutil.ReadFile(src)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	var variables = make(map[string]string)
+	for _, variableWithValue := range os.Environ() {
+		keyAndValue := strings.SplitN(variableWithValue, "=", 2)
+		variables[keyAndValue[0]] = keyAndValue[1]
 	}
-	conf := os.ExpandEnv(string(bytes))
 
-	err = ioutil.WriteFile(dest, []byte(conf), 0644)
+	t := template.Must(template.New(TemplateFilename).ParseFiles(TemplateFilename))
+	err = t.Execute(os.Stdout, variables)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		panic(err)
 	}
 }
