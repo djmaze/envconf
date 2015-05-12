@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -11,7 +12,7 @@ import (
 
 var opts struct {
 	Args struct {
-		TemplateFilename string
+		TemplatePath string
 	} `positional-args:"yes" required:"yes"`
 }
 
@@ -24,7 +25,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	TemplateFilename := opts.Args.TemplateFilename
+	templatePath := opts.Args.TemplatePath
+	templateFilename := filepath.Base(templatePath)
 
 	var variables = make(map[string]string)
 	for _, variableWithValue := range os.Environ() {
@@ -32,7 +34,7 @@ func main() {
 		variables[keyAndValue[0]] = keyAndValue[1]
 	}
 
-	t := template.Must(template.New(TemplateFilename).ParseFiles(TemplateFilename))
+	t := template.Must(template.New(templateFilename).ParseFiles(templatePath))
 	err = t.Execute(os.Stdout, variables)
 	if err != nil {
 		panic(err)
